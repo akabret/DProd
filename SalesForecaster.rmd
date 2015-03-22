@@ -1,0 +1,53 @@
+---
+title: "Sales Forecaster"
+author: "test"
+date: "Sunday, March 22, 2015"
+output: html_document
+runtime: shiny
+---
+## Sales Forecaster
+Scenario:  You work for a small company, which makes money based upon how often people use your site.  You charge $1 per use.
+
+This application lets you estimate how much money each customer will make for you, over the next year, given the following parameters:
+<li> Each customer starts with a different level of monthly usage.
+<li> Customers' usage tends to grow (or shrink) over time (aka trending), but at varying rates -- some customers have flat traffic, others decline, yet others have usage skyrocketing upwards.
+<li> All customers generally follow the same sesaonal patterns (namely: a mild spike in June, and then big peaks in November and December), but some customers are extremely seasonal, while others are hardly seasonal at all.
+
+## How to use this tool:
+1. Enter the customer's starting traffic value.
+2. Use the Trending slider to estimate how much the customer's usage will grow each month (ranging from a 5% decline each month to a 10% increase each month -- 0% means totally flat usage)
+3. Use the Seasonality slider to predict how much seasonality affects this customer (-10 means no seasonality whatsoever, 0 = normal seasonality, and 10 = extreme seasonality).
+
+Then, the chart will show you how much money you will make over the next year!
+
+
+```{r}
+library(shinyapps);
+library(shiny);
+shinyApp(
+ui = fluidPage(
+  titlePanel("Sales Forecaster"),
+  sidebarLayout(
+    sidebarPanel(
+      numericInput("val", "Starting Value (0-100)", min = 1, max = 100, value = 50),
+      sliderInput("trend","Monthly Trending (0 = flat)",min = -5,max = 10,value = 2),
+      sliderInput("seas","Seasonality (0 = normal seasonality effect",min = -10,max = 10,value = 0,step=5)),
+    mainPanel(plotOutput("distPlot")))),
+server = function(input, output) {
+  output$distPlot <- renderPlot({
+    base_seas <- c(0.90, 0.86, 1.01, 0.99, 0.94, 1.18, 0.98, 0.92, 1.00, 0.97, 1.13, 1.18);
+    base_seas <- ((base_seas -1) * ((input$seas+10)/10)) + 1;
+    base_trend <- (input$trend/100) + 1;
+    x <- 1; 
+    x[1] <- input$val * base_seas[1] * base_trend;
+    for(i in 2:12) { x[i] <- x[i-1] * base_seas[i] * base_trend};
+      plot(x, type="n", xaxt="n", xlab="Month", ylab="Revenue", ylim=c(.4 *input$val,3.14*input$val));
+      lines(x, lwd=2, col="navy")
+      points(x, pch=21, cex=2, col="navy", bg="orange");
+      axis(1, at=1:12, labels=month.name);
+      title(main=paste("Total Customer Revenue: $",round(sum(x))));
+     })},
+  options=list(height=500)
+)
+```
+
